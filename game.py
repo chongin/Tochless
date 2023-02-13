@@ -4,19 +4,21 @@ import random
 import threading, time
 from enum import Enum
 
+#hand shape
 ROCK = "Rock"
 PAPER = "Paper"
 SCISSORS = "Scissors"
 NOSHAPE = "Noshape"
 
-
+#game status
 TIE = "Tie"
-FIRSTHAND = "First Hand"
-SECONDHAND = "Second Hand"
-DETECTINGHAND = "Detecting Shape"
+FIRSTHAND = "First Hand Win"
+SECONDHAND = "Second Hand Win"
+LEFTHAND = "Left Hand Win"
+RIGHTHAND = "Right Hand Win"
 
-LEFTHAND = "Left Hand"
-RIGHTHAND = "Right Hand"
+WAITTING = "Waiting"
+DETECTING = "Detecting"
 
 class HandShape:
   hand_label = ""
@@ -90,13 +92,13 @@ class Game:
 
   def calc_winner(self):
     if len(self.handshapes) != 2:
-      return DETECTINGHAND
+      return DETECTING
 
     first_hand = self.handshapes[0]
     second_hand = self.handshapes[1]
     print("first_hand shape:{0}, second_hand:shape:{1}".format(first_hand.get_shape(), second_hand.get_shape()))
     if first_hand.get_shape() == NOSHAPE or second_hand.get_shape() == NOSHAPE:
-        return DETECTINGHAND
+        return DETECTING
 
     if first_hand.get_shape() == second_hand.get_shape():
       return TIE
@@ -121,8 +123,23 @@ class Game:
       else:
         return second_hand.get_label()
 
+
+
+def calc_center_position(text, width, height, font, font_scale, font_thickness):
+  text_width, text_height = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
+  text_x = int(width / 2 - text_width / 2)
+  text_y = int(height / 2 + text_height / 2)
+  print("text x: {0}, y: {1}".format(text_x, text_y))
+  return (text_x, text_y)
+
+
+font = cv2.FONT_HERSHEY_SIMPLEX
+font_size = 1
+font_scale = 2
+font_thickness = 5
+
 pTime = 0
-status = "Waiting"
+game_status = WAITTING
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
@@ -145,7 +162,8 @@ with mp_hands.Hands(
 
     image.flags.writeable = True
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
+    width, height = image.shape[:2]
+    print("width:{0}, height:{1}".format(width, height))
     if results.multi_hand_landmarks:
       handshapes=[]
       for hand_landmarks in results.multi_hand_landmarks:
@@ -170,25 +188,27 @@ with mp_hands.Hands(
 
        # Display hand shape
       if handshapes[0]:
-        cv2.putText(image, str(handshapes[0].get_shape()), (50, 70), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 10)
+        shape = handshapes[0].get_shape()
+        cv2.putText(image, str(shape), (50, 70), font, font_scale, (0,0,255), font_thickness)
       if len(handshapes) == 2:
-        cv2.putText(image, str(handshapes[1].get_shape()), (850, 70), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 10)
+        shape = handshapes[1].get_shape()
+        cv2.putText(image, str(shape), (900, 70), font, font_scale, (0,255,0), font_thickness)
 
       #calc the game status
       game = Game(handshapes)
-      status = game.calc_winner()
-      print("Result: {0}, handshapes: {1}".format(status, len(handshapes)))
+      game_status = game.calc_winner()
+      print("Result: {0}, handshapes: {1}".format(game_status, len(handshapes)))
     else:
-      status = "Waiting"
+      game_status = WAITTING
 
     # Display game status
-    cv2.putText(image, str(status), (225, 400), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 10)
+    cv2.putText(image, str(game_status), (50, 400), font, font_scale, (255,0,0), font_thickness)
 
     # Display FPS
     cTime = time.time()
     fps = 1 / (cTime - pTime)
     pTime = cTime
-    cv2.putText(image, f'FPS: {int(fps)}', (400, 70), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
+    cv2.putText(image, f'FPS: {int(fps)}', (480, 70), font, font_scale, (255,0,0), font_thickness)
 
     cv2.imshow('MediaPipe Hands', image)
     if cv2.waitKey(5) & 0xFF == 27:
