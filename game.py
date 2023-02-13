@@ -1,6 +1,5 @@
 import cv2
 import mediapipe as mp
-import random
 import threading, time
 from enum import Enum
 
@@ -124,15 +123,7 @@ class Game:
         return second_hand.get_label()
 
 
-
-def calc_center_position(text, width, height, font, font_scale, font_thickness):
-  text_width, text_height = cv2.getTextSize(text, font, font_scale, font_thickness)[0]
-  text_x = int(width / 2 - text_width / 2)
-  text_y = int(height / 2 + text_height / 2)
-  print("text x: {0}, y: {1}".format(text_x, text_y))
-  return (text_x, text_y)
-
-
+#global varible
 font = cv2.FONT_HERSHEY_SIMPLEX
 font_size = 1
 font_scale = 2
@@ -155,15 +146,12 @@ with mp_hands.Hands(
       print("Ignoring empty camera frame.")
       continue
 
-    # To improve performance, optionally mark the image as not writeable to
-    image.flags.writeable = False
+    image.flags.writeable = False #False: To improve performance
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = hands.process(image)
 
-    image.flags.writeable = True
+    image.flags.writeable = True #Add some text to the image
     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-    width, height = image.shape[:2]
-    print("width:{0}, height:{1}".format(width, height))
     if results.multi_hand_landmarks:
       handshapes=[]
       for hand_landmarks in results.multi_hand_landmarks:
@@ -173,6 +161,7 @@ with mp_hands.Hands(
         for landmark in hand_landmarks.landmark:
           landmarks.append([landmark.x, landmark.y])
 
+        #create HandShape instance
         handshape = HandShape(handl_label, landmarks)
         handshape.detect_shape()
         handshapes.append(handshape)
@@ -210,7 +199,7 @@ with mp_hands.Hands(
     pTime = cTime
     cv2.putText(image, f'FPS: {int(fps)}', (480, 70), font, font_scale, (255,0,0), font_thickness)
 
-    cv2.imshow('MediaPipe Hands', image)
+    cv2.imshow('Paper Rock Scissors', image)
     if cv2.waitKey(5) & 0xFF == 27:
       break
 cap.release()
